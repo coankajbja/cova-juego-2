@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Adivina el Número</title>
+<style>
+/* ══════════════════════════════════════════
+   VARIABLES & RESET
+══════════════════════════════════════════ */
+:root {
+  --bg:        #0f0c29;
+  --bg2:       #1a1640;
+  --surface:   rgba(255,255,255,0.06);
+  --surface2:  rgba(255,255,255,0.10);
+  --border:    rgba(255,255,255,0.12);
+  --text:      #e8e4ff;
+  --text2:     #a09cc0;
+  --accent:    #7c6dfa;
+  --accent2:   #b06bf8;
+  --success:   #22d87a;
+  --danger:    #ff5e7e;
+  --warning:   #ffb347;
+  --grad:      linear-gradient(135deg,#7c6dfa,#b06bf8);
+  --grad2:     linear-gradient(135deg,#0f0c29,#302b63,#24243e);
+  --shadow:    0 8px 32px rgba(0,0,0,0.45);
+  --shadow-sm: 0 4px 16px rgba(0,0,0,0.3);
+  --r:         16px;
+  --r-sm:      10px;
+  --trans:     0.25s cubic-bezier(.4,0,.2,1);
+}
+[data-theme="light"] {
+  --bg:        #f0eeff;
+  --bg2:       #e4dfff;
+  --surface:   rgba(255,255,255,0.8);
+  --surface2:  rgba(255,255,255,0.95);
+  --border:    rgba(100,80,200,0.15);
+  --text:      #1a1440;
+  --text2:     #6b5ea8;
+  --grad2:     linear-gradient(135deg,#e4dfff,#d0c8ff,#ede8ff);
+  --shadow:    0 8px 32px rgba(100,80,200,0.18);
+  --shadow-sm: 0 4px 16px rgba(100,80,200,0.12);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body {
+  font-family: system-ui,-apple-system,'Segoe UI',sans-serif;
+  background: var(--bg2);
+  background-image: var(--grad2);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 1.5rem 1rem 3rem;
+  transition: background var(--trans), color var(--trans);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ══════════════════════════════════════════
+   BACKGROUND BLOBS
+══════════════════════════════════════════ */
+.blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.18;
+  pointer-events: none;
+  z-index: 0;
+  animation: blobMove 12s ease-in-out infinite alternate;
+}
+.blob1{ width:420px;height:420px;background:#7c6dfa;top:-120px;left:-120px; }
+.blob2{ width:320px;height:320px;background:#b06bf8;bottom:-80px;right:-80px;animation-delay:-6s; }
+.blob3{ width:200px;height:200px;background:#22d87a;top:40%;left:60%;animation-delay:-3s; }
+@keyframes blobMove{
+  from{transform:translate(0,0) scale(1)}
+  to  {transform:translate(30px,20px) scale(1.08)}
+}
+
+/* ══════════════════════════════════════════
+   LAYOUT
+══════════════════════════════════════════ */
+.wrapper {
+  width:100%;max-width:480px;
+  position:relative;z-index:1;
+  animation: fadeUp .6s ease both;
+}
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(28px)}
+  to  {opacity:1;transform:translateY(0)}
+}
+
+/* ══════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════ */
+header {
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:1.5rem;
+}
+.logo {
+  display:flex;align-items:center;gap:.5rem;
+  font-size:1.35rem;font-weight:700;letter-spacing:-.5px;
+}
+.logo-icon {
+  font-size:1.6rem;
+  animation: spin 8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.header-btns{display:flex;gap:.5rem;}
+.icon-btn {
+  width:40px;height:40px;border-radius:50%;
+  border:1px solid var(--border);
+  background:var(--surface);
+  color:var(--text);
+  cursor:pointer;font-size:1.1rem;
+  display:flex;align-items:center;justify-content:center;
+  transition:background var(--trans),transform var(--trans);
+  backdrop-filter:blur(8px);
+}
+.icon-btn:hover{background:var(--surface2);transform:scale(1.08);}
+
+/* ══════════════════════════════════════════
+   CARD
+══════════════════════════════════════════ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 1.75rem 1.5rem;
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow);
+  margin-bottom: 1rem;
+  transition: background var(--trans), box-shadow var(--trans);
+}
+.card:hover { box-shadow: var(--shadow), 0 0 0 1px var(--accent); }
+
+/* ══════════════════════════════════════════
+   HERO / NUMBER DISPLAY
+══════════════════════════════════════════ */
+.hero {
+  text-align:center;
+  margin-bottom:1.5rem;
+}
+.hero-label {
+  font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text2);margin-bottom:.4rem;
+}
+.number-display {
+  font-size:5rem;font-weight:800;
+  background: var(--grad);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  line-height:1;margin-bottom:.5rem;
+  transition:transform .15s;
+}
+.number-display.shake { animation: shake .4s ease; }
+.number-display.pop   { animation: pop   .35s ease; }
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  20%    {transform:translateX(-8px)}
+  40%    {transform:translateX(8px)}
+  60%    {transform:translateX(-6px)}
+  80%    {transform:translateX(6px)}
+}
+@keyframes pop{
+  0%  {transform:scale(1)}
+  50% {transform:scale(1.18)}
+  100%{transform:scale(1)}
+}
+.hint-text {
+  font-size:1rem;font-weight:600;min-height:1.4rem;
+  transition:color var(--trans);
+}
+.hint-text.up   {color:var(--warning)}
+.hint-text.down {color:var(--accent)}
+.hint-text.win  {color:var(--success)}
+
+/* ══════════════════════════════════════════
+   PROGRESS BAR (proximity)
+══════════════════════════════════════════ */
+.progress-wrap{margin:.75rem 0 1.25rem;}
+.progress-label{
+  display:flex;justify-content:space-between;
+  font-size:.75rem;color:var(--text2);margin-bottom:.4rem;
+}
+.progress-track {
+  height:8px;border-radius:99px;
+  background:var(--surface2);
+  overflow:hidden;
+}
+.progress-fill {
+  height:100%;border-radius:99px;
+  background:var(--grad);
+  width:0%;
+  transition:width .5s cubic-bezier(.4,0,.2,1), background .5s;
+}
+
+/* ══════════════════════════════════════════
+   INPUT ROW
+══════════════════════════════════════════ */
+.input-row {
+  display:flex;gap:.6rem;margin-bottom:1rem;
+}
+input[type="number"] {
+  flex:1;height:52px;border-radius:var(--r-sm);
+  border:1px solid var(--border);
+  background:var(--surface2);
+  color:var(--text);font-size:1.4rem;font-weight:700;
+  text-align:center;outline:none;
+  transition:border-color var(--trans),box-shadow var(--trans);
+  -moz-appearance:textfield;
+}
+input::-webkit-inner-spin-button,
+input::-webkit-outer-spin-button{-webkit-appearance:none}
+input:focus {
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(124,109,250,.25);
+}
+input:disabled{opacity:.45;cursor:not-allowed;}
+.btn-primary {
+  height:52px;padding:0 1.4rem;
+  border-radius:var(--r-sm);
+  border:none;
+  background:var(--grad);
+  color:#fff;font-size:1rem;font-weight:700;
+  cursor:pointer;white-space:nowrap;
+  box-shadow:0 4px 20px rgba(124,109,250,.4);
+  transition:transform var(--trans),box-shadow var(--trans),opacity var(--trans);
+}
+.btn-primary:hover:not(:disabled){
+  transform:translateY(-2px);
+  box-shadow:0 8px 28px rgba(124,109,250,.55);
+}
+.btn-primary:active:not(:disabled){transform:scale(.97);}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;}
+.btn-secondary {
+  width:100%;height:46px;border-radius:var(--r-sm);
+  border:1px solid var(--border);
+  background:var(--surface);color:var(--text2);
+  font-size:.95rem;font-weight:600;cursor:pointer;
+  transition:background var(--trans),color var(--trans),transform var(--trans);
+}
+.btn-secondary:hover{
+  background:var(--surface2);color:var(--text);
+  transform:translateY(-1px);
+}
+.btn-secondary:active{transform:scale(.98);}
+
+/* ══════════════════════════════════════════
+   STATS GRID
+══════════════════════════════════════════ */
+.stats-grid {
+  display:grid;grid-template-columns:1fr 1fr;gap:.6rem;
+  margin-bottom:.8rem;
+}
+.stat-box {
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--r-sm);
+  padding:.75rem 1rem;
+  text-align:center;
+  transition:background var(--trans);
+}
+.stat-box:hover{background:rgba(255,255,255,.14);}
+.stat-icon{font-size:1.2rem;margin-bottom:.2rem;}
+.stat-val {
+  font-size:1.5rem;font-weight:800;
+  background:var(--grad);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  line-height:1.1;
+}
+.stat-lbl{font-size:.7rem;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;margin-top:.15rem;}
+
+/* ══════════════════════════════════════════
+   RECORDS SECTION
+══════════════════════════════════════════ */
+.records-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
+.rec-box{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-sm);
+  padding:.8rem 1rem;
+  text-align:center;
+}
+.rec-crown{font-size:1.1rem;}
+.rec-val{
+  font-size:1.25rem;font-weight:800;
+  color:var(--warning);
+  margin:.1rem 0;
+}
+.rec-lbl{font-size:.7rem;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;}
+
+/* ══════════════════════════════════════════
+   HISTORY LIST
+══════════════════════════════════════════ */
+.history-list {
+  max-height:180px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:.35rem;
+}
+.history-list::-webkit-scrollbar{width:4px;}
+.history-list::-webkit-scrollbar-thumb{
+  background:var(--accent);border-radius:99px;
+}
+.hist-item {
+  display:flex;align-items:center;gap:.6rem;
+  padding:.5rem .8rem;border-radius:8px;
+  background:var(--surface);
+  font-size:.85rem;
+  animation:slideIn .25s ease both;
+}
+@keyframes slideIn{
+  from{opacity:0;transform:translateX(-10px)}
+  to  {opacity:1;transform:translateX(0)}
+}
+.hist-n{
+  min-width:22px;font-size:.7rem;
+  color:var(--text2);font-weight:600;
+}
+.hist-val{font-weight:800;font-size:1rem;min-width:32px;}
+.hist-arrow{font-size:.85rem;flex:1;}
+.hist-up   .hist-arrow{color:var(--warning)}
+.hist-down .hist-arrow{color:var(--accent)}
+.hist-win  .hist-arrow{color:var(--success)}
+
+/* ══════════════════════════════════════════
+   SECTION TITLES
+══════════════════════════════════════════ */
+.section-title {
+  font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text2);margin-bottom:.6rem;display:flex;
+  align-items:center;gap:.4rem;
+}
+.section-title::after{
+  content:'';flex:1;height:1px;
+  background:var(--border);
+}
+
+/* ══════════════════════════════════════════
+   WIN OVERLAY
+══════════════════════════════════════════ */
+#win-overlay {
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.65);
+  backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;
+  z-index:100;
+  opacity:0;pointer-events:none;
+  transition:opacity .4s;
+}
+#win-overlay.show{opacity:1;pointer-events:all;}
+.win-card {
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:2.5rem 2rem;
+  text-align:center;
+  max-width:340px;width:90%;
+  box-shadow:0 24px 80px rgba(0,0,0,.6);
+  animation:winPop .5s cubic-bezier(.17,.67,.35,1.3) both;
+}
+@keyframes winPop{
+  from{transform:scale(.7);opacity:0}
+  to  {transform:scale(1);opacity:1}
+}
+.win-emoji{font-size:3.5rem;margin-bottom:.5rem;animation:bounce 1s ease infinite;}
+@keyframes bounce{
+  0%,100%{transform:translateY(0)}
+  50%    {transform:translateY(-10px)}
+}
+.win-title{
+  font-size:1.8rem;font-weight:800;
+  background:var(--grad);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  margin-bottom:.5rem;
+}
+.win-msg{color:var(--text2);margin-bottom:1.25rem;font-size:.95rem;line-height:1.5;}
+.win-stats{
+  display:grid;grid-template-columns:1fr 1fr;gap:.6rem;
+  margin-bottom:1.25rem;
+}
+.win-stat{
+  background:var(--surface);border-radius:10px;
+  padding:.7rem;
+}
+.win-stat-val{font-size:1.4rem;font-weight:800;color:var(--warning);}
+.win-stat-lbl{font-size:.7rem;color:var(--text2);text-transform:uppercase;}
+.win-new-record{
+  background:linear-gradient(135deg,rgba(255,179,71,.15),rgba(255,179,71,.05));
+  border:1px solid rgba(255,179,71,.35);
+  border-radius:8px;padding:.5rem;
+  font-size:.8rem;font-weight:700;color:var(--warning);
+  margin-bottom:1rem;
+  animation:pulse 1.5s ease infinite;
+}
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,179,71,.4)}
+  50%    {box-shadow:0 0 0 8px rgba(255,179,71,0)}
+}
+
+/* ══════════════════════════════════════════
+   CONFETTI CANVAS
+══════════════════════════════════════════ */
+#confetti-canvas{
+  position:fixed;inset:0;pointer-events:none;z-index:99;
+}
+
+/* ══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════ */
+.toast {
+  position:fixed;bottom:1.5rem;left:50%;
+  transform:translateX(-50%) translateY(80px);
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:99px;
+  padding:.6rem 1.2rem;
+  font-size:.85rem;font-weight:600;
+  backdrop-filter:blur(12px);
+  box-shadow:var(--shadow-sm);
+  transition:transform .35s cubic-bezier(.4,0,.2,1),opacity .35s;
+  opacity:0;z-index:200;white-space:nowrap;
+}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════ */
+@media(max-width:400px){
+  .number-display{font-size:3.8rem}
+  .card{padding:1.25rem 1rem}
+  .win-card{padding:1.75rem 1.25rem}
+}
+</style>
+</head>
+<body>
+
+<!-- Background blobs -->
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+<div class="blob blob3"></div>
+
+<!-- Confetti canvas -->
+<canvas id="confetti-canvas"></canvas>
+
+<!-- Win overlay -->
+<div id="win-overlay">
+  <div class="win-card">
+    <div class="win-emoji" id="win-emoji">🎉</div>
+    <div class="win-title" id="win-title">¡Lo conseguiste!</div>
+    <p class="win-msg" id="win-msg"></p>
+    <div class="win-stats">
+      <div class="win-stat">
+        <div class="win-stat-val" id="ws-attempts">—</div>
+        <div class="win-stat-lbl">Intentos</div>
+      </div>
+      <div class="win-stat">
+        <div class="win-stat-val" id="ws-time">—</div>
+        <div class="win-stat-lbl">Tiempo</div>
+      </div>
+    </div>
+    <div class="win-new-record" id="win-record" style="display:none">🏆 ¡Nuevo récord!</div>
+    <button class="btn-primary" style="width:100%" onclick="closeWinAndReset()">🔄 Jugar de nuevo</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<div class="wrapper">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <span class="logo-icon">🎯</span>
+      Adivina
+    </div>
+    <div class="header-btns">
+      <button class="icon-btn" onclick="toggleTheme()" id="theme-btn" title="Cambiar tema">🌙</button>
+      <button class="icon-btn" onclick="showToast('🔊 Sonido '+(soundOn?'desactivado':'activado'));soundOn=!soundOn;this.textContent=soundOn?\'🔊\':\'🔇\';" title="Sonido" id="sound-btn">🔊</button>
+    </div>
+  </header>
+
+  <!-- Main game card -->
+  <div class="card">
+    <!-- Hero / number display -->
+    <div class="hero">
+      <p class="hero-label">número secreto</p>
+      <div class="number-display" id="num-display">?</div>
+      <p class="hint-text" id="hint-text">Ingresa un número para empezar</p>
+    </div>
+
+    <!-- Proximity bar -->
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span>📍 Proximidad</span>
+        <span id="prox-pct">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="prox-fill"></div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="input-row">
+      <input type="number" id="guess-input" min="1" max="100"
+             placeholder="1 – 100" autocomplete="off"/>
+      <button class="btn-primary" id="btn-guess" onclick="makeGuess()">⚡ Intentar</button>
+    </div>
+
+    <!-- Stats grid -->
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-val" id="s-attempts">0</div>
+        <div class="stat-lbl">Intentos</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-icon">⏱️</div>
+        <div class="stat-val" id="s-time">0:00</div>
+        <div class="stat-lbl">Tiempo</div>
+      </div>
+    </div>
+
+    <button class="btn-secondary" onclick="resetGame()" style="margin-top:.6rem">
+      🔄 Nueva partida
+    </button>
+  </div>
+
+  <!-- Records card -->
+  <div class="card">
+    <p class="section-title">🏆 Mejores marcas</p>
+    <div class="records-grid">
+      <div class="rec-box">
+        <div class="rec-crown">🎯</div>
+        <div class="rec-val" id="r-attempts">—</div>
+        <div class="rec-lbl">Mejor en intentos</div>
+      </div>
+      <div class="rec-box">
+        <div class="rec-crown">⚡</div>
+        <div class="rec-val" id="r-time">—</div>
+        <div class="rec-lbl">Mejor tiempo</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- History card -->
+  <div class="card">
+    <p class="section-title">📜 Este turno</p>
+    <div class="history-list" id="history-list">
+      <p style="text-align:center;color:var(--text2);font-size:.85rem;padding:.5rem">
+        Tus intentos aparecerán aquí
+      </p>
+    </div>
+  </div>
+
+</div><!-- /wrapper -->
+
+<script>
+/* ══════════════════════════════════════════
+   STATE
+══════════════════════════════════════════ */
+let secret, attempts, won, timerID, startTime, elapsed;
+let soundOn = true;
+let audioCtx = null;
+
+/* ══════════════════════════════════════════
+   AUDIO (Web Audio API — sin archivos externos)
+══════════════════════════════════════════ */
+function getAudioCtx(){
+  if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  return audioCtx;
+}
+function playTone(freq,type,dur,vol=0.18){
+  if(!soundOn) return;
+  try{
+    const ctx=getAudioCtx();
+    const osc=ctx.createOscillator();
+    const gain=ctx.createGain();
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.type=type;osc.frequency.setValueAtTime(freq,ctx.currentTime);
+    gain.gain.setValueAtTime(vol,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+    osc.start();osc.stop(ctx.currentTime+dur);
+  }catch(e){}
+}
+function sfxWrong(){ playTone(180,'sawtooth',.25,.15); }
+function sfxClose(){
+  playTone(440,'sine',.1);
+  setTimeout(()=>playTone(550,'sine',.1),110);
+}
+function sfxWin(){
+  [523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(f,'sine',.25,.22),i*90));
+}
+
+/* ══════════════════════════════════════════
+   TIMER
+══════════════════════════════════════════ */
+function startTimer(){
+  startTime=Date.now();elapsed=0;
+  clearInterval(timerID);
+  timerID=setInterval(()=>{
+    elapsed=Math.floor((Date.now()-startTime)/1000);
+    document.getElementById('s-time').textContent=fmtTime(elapsed);
+  },500);
+}
+function stopTimer(){
+  clearInterval(timerID);
+  elapsed=Math.floor((Date.now()-startTime)/1000);
+}
+function fmtTime(s){
+  const m=Math.floor(s/60), ss=s%60;
+  return m+':'+(ss<10?'0':'')+ss;
+}
+
+/* ══════════════════════════════════════════
+   RECORDS (localStorage)
+══════════════════════════════════════════ */
+function getRecord(key){ return parseInt(localStorage.getItem(key)||'0',10)||null; }
+function setRecord(key,val){ localStorage.setItem(key,val); }
+function updateRecordDisplay(){
+  const ra=getRecord('adn_rec_attempts');
+  const rt=getRecord('adn_rec_time');
+  document.getElementById('r-attempts').textContent = ra ? ra+' int.' : '—';
+  document.getElementById('r-time').textContent     = rt ? fmtTime(rt) : '—';
+}
+
+/* ══════════════════════════════════════════
+   DYNAMIC MESSAGES
+══════════════════════════════════════════ */
+function getDynMsg(att,pct){
+  if(att<=2) return '¡Arranque brillante! 🔥';
+  if(pct>90)  return '¡Estás ardiendo! 🌡️ ¡Casi!';
+  if(pct>75)  return '¡Muy cerca! 💨 ¡No te rindas!';
+  if(pct>50)  return '¡Vas bien encaminado! 🧭';
+  if(att>12)  return '¡El número te está esquivando! 😅';
+  return '¡Sigue intentándolo! 💪';
+}
+function getWinMsg(att,secs){
+  if(att===1)  return '¡INCREÍBLE! ¡Lo conseguiste a la primera! Deberías comprar lotería. 🍀';
+  if(att<=3)   return `¡Asombroso! Solo ${att} intentos. Eres un genio de los números. 🧠`;
+  if(att<=6)   return `¡Excelente! ${att} intentos y tiempo de ${fmtTime(secs)}. ¡Impresionante! 🌟`;
+  if(att<=10)  return `¡Muy bien! ${att} intentos. Una partida sólida y limpia. ✨`;
+  if(att<=15)  return `¡Lo lograste! ${att} intentos. El secreto era tuyo al final. 😎`;
+  return `¡Por fin! ${att} intentos… pero lo importante es que llegaste. 🎊`;
+}
+
+/* ══════════════════════════════════════════
+   PROXIMITY BAR
+══════════════════════════════════════════ */
+function updateProximity(guess){
+  const diff=Math.abs(guess-secret);
+  /* distancia máxima posible: 99 */
+  const pct=Math.max(0,Math.round((1-diff/99)*100));
+  document.getElementById('prox-pct').textContent=pct+'%';
+  const fill=document.getElementById('prox-fill');
+  fill.style.width=pct+'%';
+  /* color por proximidad */
+  if(pct>85)       fill.style.background='linear-gradient(90deg,#22d87a,#00ffaa)';
+  else if(pct>60)  fill.style.background='linear-gradient(90deg,#ffb347,#ffd700)';
+  else             fill.style.background='linear-gradient(90deg,#7c6dfa,#b06bf8)';
+  return pct;
+}
+
+/* ══════════════════════════════════════════
+   HISTORY
+══════════════════════════════════════════ */
+let historyItems=[];
+function addHistory(val,result){
+  historyItems.unshift({val,result,n:attempts});
+  renderHistory();
+}
+function renderHistory(){
+  const list=document.getElementById('history-list');
+  if(!historyItems.length){
+    list.innerHTML='<p style="text-align:center;color:var(--text2);font-size:.85rem;padding:.5rem">Tus intentos aparecerán aquí</p>';
+    return;
+  }
+  list.innerHTML=historyItems.map(h=>{
+    const cls = h.result==='up'?'hist-up':h.result==='down'?'hist-down':'hist-win';
+    const arrow = h.result==='up'?'⬆️ Más alto':h.result==='down'?'⬇️ Más bajo':'✅ ¡Correcto!';
+    return `<div class="hist-item ${cls}">
+      <span class="hist-n">#${h.n}</span>
+      <span class="hist-val">${h.val}</span>
+      <span class="hist-arrow">${arrow}</span>
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════
+   MAKE GUESS
+══════════════════════════════════════════ */
+function makeGuess(){
+  if(won) return;
+  const input=document.getElementById('guess-input');
+  const val=parseInt(input.value,10);
+  input.value='';
+
+  if(!val||val<1||val>100){
+    showToast('⚠️ Introduce un número entre 1 y 100');
+    animateDisplay('shake');
+    return;
+  }
+
+  /* Start timer on first guess */
+  if(attempts===0) startTimer();
+
+  attempts++;
+  document.getElementById('s-attempts').textContent=attempts;
+
+  const pct=updateProximity(val);
+  addHistory(val, val<secret?'up':val>secret?'down':'win');
+
+  const disp=document.getElementById('num-display');
+  const hint=document.getElementById('hint-text');
+
+  if(val===secret){
+    /* WIN */
+    won=true;
+    stopTimer();
+    disp.textContent=secret;
+    disp.classList.remove('shake');
+    animateDisplay('pop');
+    hint.className='hint-text win';
+    hint.textContent='🎉 ¡ACERTASTE!';
+    document.getElementById('btn-guess').disabled=true;
+    document.getElementById('guess-input').disabled=true;
+    sfxWin();
+    checkRecords();
+    setTimeout(showWinOverlay, 600);
+    launchConfetti();
+
+  } else {
+    const higher=val<secret;
+    disp.textContent=val;
+    hint.className='hint-text '+(higher?'up':'down');
+
+    /* Dynamic hint */
+    if(pct>85)      hint.textContent=higher?'🔥 ¡Muy cerca! Sube un poquito':'🔥 ¡Muy cerca! Baja un poquito';
+    else if(pct>65) hint.textContent=higher?'🌡️ Caliente. Sube más':'🌡️ Caliente. Baja más';
+    else if(pct>40) hint.textContent=higher?'⬆️ El secreto es mayor':'⬇️ El secreto es menor';
+    else            hint.textContent=higher?'❄️ Muy frío. Mucho más alto':'❄️ Muy frío. Mucho más bajo';
+
+    animateDisplay('shake');
+    if(pct>65) sfxClose(); else sfxWrong();
+    showToast(getDynMsg(attempts,pct));
+  }
+  input.focus();
+}
+
+/* ══════════════════════════════════════════
+   ANIMATE NUMBER DISPLAY
+══════════════════════════════════════════ */
+function animateDisplay(cls){
+  const el=document.getElementById('num-display');
+  el.classList.remove('shake','pop');
+  void el.offsetWidth;
+  el.classList.add(cls);
+  el.addEventListener('animationend',()=>el.classList.remove(cls),{once:true});
+}
+
+/* ══════════════════════════════════════════
+   RECORDS CHECK
+══════════════════════════════════════════ */
+let newAttRecord=false, newTimeRecord=false;
+function checkRecords(){
+  const ra=getRecord('adn_rec_attempts');
+  const rt=getRecord('adn_rec_time');
+  newAttRecord =!ra||attempts<ra;
+  newTimeRecord=!rt||elapsed<rt;
+  if(newAttRecord) setRecord('adn_rec_attempts',attempts);
+  if(newTimeRecord) setRecord('adn_rec_time',elapsed);
+  updateRecordDisplay();
+}
+
+/* ══════════════════════════════════════════
+   WIN OVERLAY
+══════════════════════════════════════════ */
+function showWinOverlay(){
+  document.getElementById('ws-attempts').textContent=attempts+' int.';
+  document.getElementById('ws-time').textContent=fmtTime(elapsed);
+  document.getElementById('win-msg').textContent=getWinMsg(attempts,elapsed);
+  const rec=document.getElementById('win-record');
+  if(newAttRecord||newTimeRecord){
+    rec.style.display='block';
+    rec.textContent='🏆 ¡Nuevo récord'+(newAttRecord&&newTimeRecord?' de intentos y tiempo':newAttRecord?' de intentos':' de tiempo')+'!';
+  } else {
+    rec.style.display='none';
+  }
+  /* Win emoji based on performance */
+  const emojis=['🏆','🌟','🎊','🥇','🔥','🎯'];
+  document.getElementById('win-emoji').textContent=attempts<=3?'🌟':attempts<=6?'🏆':'🎉';
+  document.getElementById('win-overlay').classList.add('show');
+}
+function closeWinAndReset(){
+  document.getElementById('win-overlay').classList.remove('show');
+  resetGame();
+}
+
+/* ══════════════════════════════════════════
+   RESET
+══════════════════════════════════════════ */
+function resetGame(){
+  clearInterval(timerID);
+  secret   = Math.floor(Math.random()*100)+1;
+  attempts = 0; won=false; elapsed=0;
+  historyItems=[];
+  newAttRecord=false; newTimeRecord=false;
+
+  document.getElementById('num-display').textContent='?';
+  document.getElementById('hint-text').className='hint-text';
+  document.getElementById('hint-text').textContent='Ingresa un número para empezar';
+  document.getElementById('s-attempts').textContent='0';
+  document.getElementById('s-time').textContent='0:00';
+  document.getElementById('prox-fill').style.width='0%';
+  document.getElementById('prox-pct').textContent='0%';
+  document.getElementById('guess-input').disabled=false;
+  document.getElementById('btn-guess').disabled=false;
+  document.getElementById('guess-input').value='';
+  renderHistory();
+  document.getElementById('guess-input').focus();
+}
+
+/* ══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════ */
+let toastTimer=null;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+/* ══════════════════════════════════════════
+   THEME
+══════════════════════════════════════════ */
+function toggleTheme(){
+  const isDark=document.documentElement.getAttribute('data-theme')==='light';
+  const theme=isDark?'dark':'light';
+  document.documentElement.setAttribute('data-theme',isDark?'':' light');
+  /* simpler: */
+  if(isDark){
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('adn_theme','dark');
+    document.getElementById('theme-btn').textContent='🌙';
+  } else {
+    document.documentElement.setAttribute('data-theme','light');
+    localStorage.setItem('adn_theme','light');
+    document.getElementById('theme-btn').textContent='☀️';
+  }
+}
+function loadTheme(){
+  const t=localStorage.getItem('adn_theme');
+  if(t==='light'){
+    document.documentElement.setAttribute('data-theme','light');
+    document.getElementById('theme-btn').textContent='☀️';
+  }
+}
+
+/* ══════════════════════════════════════════
+   CONFETTI
+══════════════════════════════════════════ */
+function launchConfetti(){
+  const canvas=document.getElementById('confetti-canvas');
+  const ctx=canvas.getContext('2d');
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+  const pieces=[];
+  const colors=['#7c6dfa','#b06bf8','#22d87a','#ffb347','#ff5e7e','#fff','#ffd700'];
+  for(let i=0;i<160;i++){
+    pieces.push({
+      x:Math.random()*canvas.width,
+      y:Math.random()*canvas.height-canvas.height,
+      w:Math.random()*10+5,
+      h:Math.random()*5+3,
+      color:colors[Math.floor(Math.random()*colors.length)],
+      rot:Math.random()*360,
+      vx:(Math.random()-0.5)*4,
+      vy:Math.random()*4+2,
+      vrot:(Math.random()-0.5)*8,
+      alpha:1
+    });
+  }
+  let frame=0;
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy; p.rot+=p.vrot;
+      if(frame>120) p.alpha=Math.max(0,p.alpha-0.012);
+      ctx.save();
+      ctx.globalAlpha=p.alpha;
+      ctx.translate(p.x+p.w/2,p.y+p.h/2);
+      ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle=p.color;
+      ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      ctx.restore();
+    });
+    frame++;
+    if(frame<200) requestAnimationFrame(draw);
+    else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  draw();
+}
+
+/* ══════════════════════════════════════════
+   KEYBOARD
+══════════════════════════════════════════ */
+document.getElementById('guess-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter') makeGuess();
+});
+
+/* ══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════ */
+loadTheme();
+updateRecordDisplay();
+resetGame();
+</script>
+</body>
+</html>
